@@ -2,16 +2,16 @@
 
 ## Overview
 
-Implement a kernel that adds 10 to each position of a 1D TileTensor `a` and
-stores it in 1D TileTensor `output`.
+Implement a CUDA kernel that adds 10 to each position of vector `a` and stores
+it in `output`, routing the data through **shared memory**.
 
 **Shared memory** is fast, on-chip storage that is visible to all threads within
 the same block. Unlike global memory (which all blocks can access but is slow),
-shared memory has latency similar to a CPU register cache. Each block gets its
-own private shared memory region — threads in one block cannot see the shared
-memory of another block. Because threads can read and write to the same shared
-memory locations, coordination via `barrier()` is required to prevent one thread
-from reading a value before another thread has finished writing it.
+shared memory has latency closer to a register/L1 cache. Each block gets its own
+private shared memory region — threads in one block cannot see the shared memory
+of another block. Because threads can read and write the same shared locations,
+coordination via `__syncthreads()` is required to prevent one thread from
+reading a value before another thread has finished writing it.
 
 **Note:** _You have fewer threads per block than the size of `a`._
 
@@ -22,12 +22,9 @@ from reading a value before another thread has finished writing it.
 
 In this puzzle, you'll learn about:
 
-- Using TileTensor's shared memory features with address_space
-- Thread synchronization with shared memory
-- Block-local data management with TileTensor
-
-The key insight is how TileTensor simplifies shared memory management while
-maintaining the performance benefits of block-local storage.
+- Declaring shared memory with `__shared__`
+- Thread synchronization with `__syncthreads()`
+- The load → sync → compute pattern for block-local data
 
 ## Configuration
 
@@ -36,36 +33,37 @@ maintaining the performance benefits of block-local storage.
 - Number of blocks: 2
 - Shared memory: `TPB` elements per block
 
-> **Warning**: Each block can only have a _constant_ amount of shared memory
-> that threads in that block can read and write to. This needs to be a literal
-> python constant, not a variable. After writing to shared memory you need to
-> call [barrier](https://docs.modular.com/mojo/std/gpu/sync/sync/barrier/) to
-> ensure that threads do not cross.
+> **Warning**: A statically-declared shared array (`__shared__ float s[TPB];`)
+> needs a **compile-time constant** size, not a runtime variable. After writing
+> to shared memory you must call
+> [`__syncthreads()`](https://docs.nvidia.com/cuda/cuda-c-programming-guide/#synchronization-functions)
+> before another thread reads those values. (For runtime-sized shared memory,
+> CUDA offers `extern __shared__` plus a third launch parameter — we'll meet that
+> later.)
 
-**Educational Note**: In this specific puzzle, the `barrier()` isn't strictly
-necessary since each thread only accesses its own shared memory location.
-However, it's included to teach proper shared memory synchronization patterns
-for more complex scenarios where threads need to coordinate access to shared
-data.
+**Educational note**: In this specific puzzle the `__syncthreads()` isn't
+strictly necessary since each thread only accesses its own shared memory slot.
+However, it's included to teach the proper synchronization pattern for the more
+complex scenarios — coming up soon — where threads need to read data their
+neighbors wrote.
 
 ## Code to complete
 
-```mojo
-{{#include ../../../problems/p08/p08.mojo:add_10_shared}}
+```cpp
+{{#include ../../../problems/p08/p08.cu:add_10_shared}}
 ```
 
-<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p08/p08.mojo" class="filename">View full file: problems/p08/p08.mojo</a>
+<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p08/p08.cu" class="filename">View full file: problems/p08/p08.cu</a>
 
 <details>
 <summary><strong>Tips</strong></summary>
 
 <div class="solution-tips">
 
-1. Create shared memory with TileTensor using address_space parameter
-2. Load data with natural indexing: `shared[local_i] = a[global_i]`
-3. Synchronize with `barrier()` (educational - not strictly needed here)
-4. Process data using shared memory indices
-5. Guard against out-of-bounds access
+1. The shared array and the load + `__syncthreads()` are already written for you
+2. After the barrier, guard against out-of-bounds: `if (global_i < size)`
+3. Inside the guard, read from shared memory and write the result:
+   `output[global_i] = shared[local_i] + 10.0f`
 
 </div>
 </details>
@@ -74,48 +72,15 @@ data.
 
 To test your solution, run the following command in your terminal:
 
-<div class="code-tabs" data-tab-group="package-manager">
-  <div class="tab-buttons">
-    <button class="tab-button">pixi NVIDIA (default)</button>
-    <button class="tab-button">pixi AMD</button>
-    <button class="tab-button">pixi Apple</button>
-    <button class="tab-button">uv</button>
-  </div>
-  <div class="tab-content">
-
 ```bash
-pixi run p08
+make p08
 ```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e amd p08
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e apple p08
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-uv run poe p08
-```
-
-  </div>
-</div>
 
 Your output will look like this if the puzzle isn't solved yet:
 
 ```txt
-out: HostBuffer([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-expected: HostBuffer([11.0, 11.0, 11.0, 11.0, 11.0, 11.0, 11.0, 11.0])
+out: [0, 0, 0, 0, 0, 0, 0, 0]
+expected: [11, 11, 11, 11, 11, 11, 11, 11]
 ```
 
 ## Solution
@@ -123,70 +88,59 @@ expected: HostBuffer([11.0, 11.0, 11.0, 11.0, 11.0, 11.0, 11.0, 11.0])
 <details class="solution-details">
 <summary></summary>
 
-```mojo
-{{#include ../../../solutions/p08/p08.mojo:add_10_shared_solution}}
+```cpp
+{{#include ../../../solutions/p08/p08.cu:add_10_shared_solution}}
 ```
 
 <div class="solution-explanation">
 
-This solution demonstrates how TileTensor simplifies shared memory usage while
-maintaining performance:
+This solution demonstrates the canonical shared-memory workflow:
 
-1. **Memory hierarchy with TileTensor**
-   - Global tensors: `a` and `output` (slow, visible to all blocks)
-   - Shared tensor: `shared` (fast, thread-block local)
+1. **Memory hierarchy**
+   - Global memory: `a` and `output` (large, slow, visible to all blocks)
+   - Shared memory: `shared` (small, fast, private to each block)
    - Example for 8 elements with 4 threads per block:
 
      ```txt
-     Global tensor a: [1 1 1 1 | 1 1 1 1]  # Input: all ones
+     Global array a: [1 1 1 1 | 1 1 1 1]  # input: all ones
 
-     Block (0):         Block (1):
+     Block 0:           Block 1:
      shared[0..3]       shared[0..3]
      [1 1 1 1]          [1 1 1 1]
      ```
 
 2. **Thread coordination**
-   - Load phase with natural indexing:
+   - Load phase:
 
      ```txt
      Thread 0: shared[0] = a[0]=1    Thread 2: shared[2] = a[2]=1
      Thread 1: shared[1] = a[1]=1    Thread 3: shared[3] = a[3]=1
-     barrier()    ↓         ↓        ↓         ↓   # Wait for all loads
+     __syncthreads()   # wait for all loads to finish
      ```
 
-   - Process phase: Each thread adds 10 to its shared tensor value
+   - Compute phase: each thread adds 10 to its shared value
    - Result: `output[global_i] = shared[local_i] + 10 = 11`
 
-**Note**: In this specific case, the `barrier()` isn't strictly necessary since
-each thread only writes to and reads from its own shared memory location
-(`shared[local_i]`). However, it's included for educational purposes to
-demonstrate proper shared memory synchronization patterns that are essential
-when threads need to access each other's data.
+**Note**: In this specific case the `__syncthreads()` isn't strictly necessary
+since each thread only writes and reads its own slot (`shared[local_i]`). It's
+included to demonstrate the pattern that *is* essential when threads read each
+other's data.
 
-3. **TileTensor benefits**
-   - Shared memory allocation:
+3. **Declaring shared memory**
 
-     ```txt
-     # Clean TileTensor API with address_space
-     shared = stack_allocation[dtype=dtype, address_space=AddressSpace.SHARED](row_major[TPB]())
-     ```
-
-   - Natural indexing for both global and shared:
-
-     ```txt
-     Block 0 output: [11 11 11 11]
-     Block 1 output: [11 11 11 11]
-     ```
-
-   - Built-in layout management and type safety
+   ```cpp
+   __shared__ float shared[TPB];  // TPB must be a compile-time constant
+   ```
 
 4. **Memory access pattern**
-   - Load: Global tensor → Shared tensor (optimized)
-   - Sync: Same `barrier()` requirement as raw version
-   - Process: Add 10 to shared values
-   - Store: Write 11s back to global tensor
+   - Load: global → shared
+   - Sync: `__syncthreads()`
+   - Compute: add 10 to the shared values
+   - Store: shared → global
 
-This pattern shows how TileTensor maintains the performance benefits of shared
-memory while providing a more ergonomic API and built-in features.
+This load/sync/compute structure is the backbone of nearly every high-performance
+GPU kernel you'll write — from reductions and convolutions to tiled matrix
+multiplication.
+
 </div>
 </details>

@@ -1,16 +1,12 @@
 # Puzzle 3: Guards
 
-{{ youtube YFKutZbRYSM breakpoint-lg }}
-
 ## Overview
 
-Implement a kernel that adds 10 to each position of vector `a` and stores it in
-vector `output`.
+Implement a CUDA kernel that adds 10 to each position of vector `a` and stores
+it in vector `output`.
 
 **Note**: _You have more threads than positions. This means you need to protect
 against out-of-bounds memory access._
-
-{{ youtube YFKutZbRYSM breakpoint-sm }}
 
 <img src="./media/03.png" alt="Guard" class="light-mode-img">
 <img src="./media/03d.png" alt="Guard" class="dark-mode-img">
@@ -40,28 +36,26 @@ Thread 4 (i=4):  if 4 < size:  ❌ Skip (out of bounds)
 Thread 5 (i=5):  if 5 < size:  ❌ Skip (out of bounds)
 ```
 
-💡 **Note**: Boundary checking becomes increasingly complex with:
-
-- Multi-dimensional arrays
-- Different array shapes
-- Complex access patterns
+In CUDA you almost always launch a "round" number of threads (a multiple of the
+warp size, 32) even when your data isn't a multiple of that. The bounds check is
+what makes the extra threads harmless.
 
 ## Code to complete
 
-```mojo
-{{#include ../../../problems/p03/p03.mojo:add_10_guard}}
+```cpp
+{{#include ../../../problems/p03/p03.cu:add_10_guard}}
 ```
 
-<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p03/p03.mojo" class="filename">View full file: problems/p03/p03.mojo</a>
+<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p03/p03.cu" class="filename">View full file: problems/p03/p03.cu</a>
 
 <details>
 <summary><strong>Tips</strong></summary>
 
 <div class="solution-tips">
 
-1. Store `thread_idx.x` in `i`
-2. Add guard: `if i < size`
-3. Inside guard: `output[i] = a[i] + 10.0`
+1. Store `threadIdx.x` in `i`
+2. Add the guard: `if (i < size)`
+3. Inside the guard: `output[i] = a[i] + 10.0f`
 
 </div>
 </details>
@@ -70,48 +64,15 @@ Thread 5 (i=5):  if 5 < size:  ❌ Skip (out of bounds)
 
 To test your solution, run the following command in your terminal:
 
-<div class="code-tabs" data-tab-group="package-manager">
-  <div class="tab-buttons">
-    <button class="tab-button">pixi NVIDIA (default)</button>
-    <button class="tab-button">pixi AMD</button>
-    <button class="tab-button">pixi Apple</button>
-    <button class="tab-button">uv</button>
-  </div>
-  <div class="tab-content">
-
 ```bash
-pixi run p03
+make p03
 ```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e amd p03
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e apple p03
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-uv run poe p03
-```
-
-  </div>
-</div>
 
 Your output will look like this if the puzzle isn't solved yet:
 
 ```txt
-out: HostBuffer([0.0, 0.0, 0.0, 0.0])
-expected: HostBuffer([10.0, 11.0, 12.0, 13.0])
+out: [0, 0, 0, 0]
+expected: [10, 11, 12, 13]
 ```
 
 ## Solution
@@ -119,22 +80,23 @@ expected: HostBuffer([10.0, 11.0, 12.0, 13.0])
 <details class="solution-details">
 <summary></summary>
 
-```mojo
-{{#include ../../../solutions/p03/p03.mojo:add_10_guard_solution}}
+```cpp
+{{#include ../../../solutions/p03/p03.cu:add_10_guard_solution}}
 ```
 
 <div class="solution-explanation">
 
 This solution:
 
-- Gets thread index with `i = thread_idx.x`
-- Guards against out-of-bounds access with `if i < size`
-- Inside guard: adds 10 to input value
+- Gets the thread index with `int i = threadIdx.x`
+- Guards against out-of-bounds access with `if (i < size)`
+- Inside the guard: adds 10 to the input value
 
-> You might wonder why it passes the test even without the bound-check! Always
-> remember that passing the tests doesn't necessarily mean the code is sound and
-> free of Undefined Behaviors. In [puzzle 10](../puzzle_10/puzzle_10.md) we'll
-> examine such cases and use some tools to catch such soundness bugs.
+> You might wonder why a kernel can sometimes pass the test even *without* the
+> bounds check. Passing the test doesn't mean the code is sound and free of
+> undefined behavior — an out-of-bounds write may land on memory you don't own
+> and silently corrupt it. In [Puzzle 10](../puzzle_10/puzzle_10.md) we'll use
+> `compute-sanitizer` to catch exactly these soundness bugs.
 
 </div>
 </details>
@@ -144,23 +106,23 @@ This solution:
 While simple boundary checks work here, consider these challenges:
 
 - What about 2D/3D array boundaries?
-- How to handle different shapes efficiently?
+- How do we handle different shapes efficiently?
 - What if we need padding or edge handling?
 
 Example of growing complexity:
 
-```mojo
-# Current: 1D bounds check
-if i < size: ...
+```cpp
+// Current: 1D bounds check
+if (i < size) { ... }
 
-# Coming soon: 2D bounds check
-if i < height and j < width: ...
+// Coming soon: 2D bounds check
+if (row < height && col < width) { ... }
 
-# Later: 3D with padding
-if i < height and j < width and k < depth and
-   i >= padding and j >= padding: ...
+// Later: 3D with padding
+if (row < height && col < width && depth < d &&
+    row >= pad && col >= pad) { ... }
 ```
 
-These boundary handling patterns will become more elegant when we
-[learn about TileTensor in Puzzle 4](../puzzle_04/introduction_tile_tensor.md),
-which provides built-in shape management.
+These boundary-handling patterns stay manageable when we
+[learn about TensorView in Puzzle 4](../puzzle_04/introduction_tensor_view.md),
+which keeps the shape alongside the data.

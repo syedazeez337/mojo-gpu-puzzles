@@ -3,7 +3,7 @@ authors = ["Modular <hello@modular.com>"]
 language = "en"
 multilingual = false
 src = "src"
-title = "Mojo 🔥 GPU Puzzles"
+title = "CUDA GPU Puzzles"
 version = "1.0.0"
 
 [output.html]
@@ -27,7 +27,7 @@ copy-fonts = true
 favicon_svg=true
 smart-punctuation = true
 no-section-label = true
-git-repository-url = "https://github.com/modular/mojo-gpu-puzzles"
+git-repository-url = "https://github.com/syedazeez337/mojo-gpu-puzzles"
 mathjax-support = true
 theme-switcher = true
 no-theme-selection = false

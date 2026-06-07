@@ -2,31 +2,45 @@
 
 In this puzzle, you'll learn about:
 
-- Basic GPU kernel structure
-- Thread indexing with `thread_idx.x`
+- Basic CUDA kernel structure
+- Thread indexing with `threadIdx.x`
 - Simple parallel operations
 
-- **Parallelism**: Each thread executes independently
-- **Thread indexing**: Access element at position `i = thread_idx.x`
+- **Parallelism**: Each thread executes the kernel independently
+- **Thread indexing**: Access element at position `i = threadIdx.x`
 - **Memory access**: Read from `a[i]` and write to `output[i]`
 - **Data independence**: Each output depends only on its corresponding input
 
+## Anatomy of a CUDA program
+
+Every puzzle is a normal C++ program compiled with `nvcc`. The GPU-specific
+pieces are:
+
+- A **kernel**: a function marked `__global__` that runs on the GPU. Every
+  thread runs the same kernel body, distinguished only by its built-in indices
+  (`threadIdx`, `blockIdx`, `blockDim`).
+- A **launch**: the `kernel<<<blocks, threads>>>(args)` syntax that asks the GPU
+  to run the kernel across a grid of threads.
+- **Explicit memory movement**: the GPU has its own memory. We `cudaMalloc`
+  device buffers, `cudaMemcpy` inputs from host (CPU) to device (GPU), launch,
+  then `cudaMemcpy` the results back.
+
 ## Code to complete
 
-```mojo
-{{#include ../../../problems/p01/p01.mojo:add_10}}
+```cpp
+{{#include ../../../problems/p01/p01.cu:add_10}}
 ```
 
-<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p01/p01.mojo" class="filename">View full file: problems/p01/p01.mojo</a>
+<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p01/p01.cu" class="filename">View full file: problems/p01/p01.cu</a>
 
 <details>
 <summary><strong>Tips</strong></summary>
 
 <div class="solution-tips">
 
-1. Store `thread_idx.x` in `i`
+1. Store `threadIdx.x` in `i`
 2. Add 10 to `a[i]`
-3. Store result in `output[i]`
+3. Store the result in `output[i]`
 
 </div>
 </details>
@@ -35,48 +49,15 @@ In this puzzle, you'll learn about:
 
 To test your solution, run the following command in your terminal:
 
-<div class="code-tabs" data-tab-group="package-manager">
-  <div class="tab-buttons">
-    <button class="tab-button">pixi NVIDIA (default)</button>
-    <button class="tab-button">pixi AMD</button>
-    <button class="tab-button">pixi Apple</button>
-    <button class="tab-button">uv</button>
-  </div>
-  <div class="tab-content">
-
 ```bash
-pixi run p01
+make p01
 ```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e amd p01
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e apple p01
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-uv run poe p01
-```
-
-  </div>
-</div>
 
 Your output will look like this if the puzzle isn't solved yet:
 
 ```txt
-out: HostBuffer([0.0, 0.0, 0.0, 0.0])
-expected: HostBuffer([10.0, 11.0, 12.0, 13.0])
+out: [0, 0, 0, 0]
+expected: [10, 11, 12, 13]
 ```
 
 ## Solution
@@ -84,16 +65,20 @@ expected: HostBuffer([10.0, 11.0, 12.0, 13.0])
 <details class="solution-details">
 <summary></summary>
 
-```mojo
-{{#include ../../../solutions/p01/p01.mojo:add_10_solution}}
+```cpp
+{{#include ../../../solutions/p01/p01.cu:add_10_solution}}
 ```
 
 <div class="solution-explanation">
 
 This solution:
 
-- Gets thread index with `i = thread_idx.x`
-- Adds 10 to input value: `output[i] = a[i] + 10.0`
+- Gets the thread index with `int i = threadIdx.x`
+- Adds 10 to the input value: `output[i] = a[i] + 10.0f`
+
+Because we launch exactly `SIZE` threads in a single block, thread `i` owns
+element `i` — no loop required. The `f` suffix on `10.0f` keeps the arithmetic
+in single precision, matching the `float` data.
 
 </div>
 </details>

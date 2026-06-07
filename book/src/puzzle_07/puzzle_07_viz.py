@@ -5,7 +5,7 @@
 # ===----------------------------------------------------------------------=== #
 from manim import *
 
-# Constants matching p07.mojo
+# Constants matching p07.cu
 SIZE = 5
 THREADS_PER_BLOCK = (3, 3)
 

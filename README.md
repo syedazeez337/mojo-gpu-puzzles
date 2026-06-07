@@ -1,39 +1,21 @@
 <p align="center">
-  <img src="book/src/puzzles_images/puzzle-mark.svg" alt="Mojo GPU Puzzles Logo" width="150">
+  <img src="book/src/puzzles_images/puzzle-mark.svg" alt="CUDA GPU Puzzles Logo" width="150">
 </p>
 
 <p align="center">
-  <h1 align="center">Mojo🔥 GPU Puzzles</h1>
+  <h1 align="center">CUDA GPU Puzzles</h1>
 </p>
 
 <p align="center">
-  <h3 align="center">Learn GPU Programming in Mojo🔥 Through Interactive Puzzles🧩</h3>
+  <h3 align="center">Learn GPU Programming in CUDA C++ Through Interactive Puzzles 🧩</h3>
 </p>
 
 <p align="center">
   <a href="#overview"><strong>Overview</strong></a> •
-  <a href="#why-mojo"><strong>Why Mojo</strong></a> •
+  <a href="#why-cuda"><strong>Why CUDA</strong></a> •
   <a href="#getting-started"><strong>Getting Started</strong></a> •
   <a href="#development"><strong>Development</strong></a> •
-  <a href="#community"><strong>Community</strong></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/modular/mojo-gpu-puzzles/actions/workflows/ci.yml">
-    <img src="https://github.com/modular/mojo-gpu-puzzles/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI">
-  </a>
-  <a href="https://docs.modular.com/mojo">
-    <img src="https://img.shields.io/badge/Powered%20by-Mojo-FF5F1F" alt="Powered by Mojo">
-  </a>
-  <a href="https://docs.modular.com/max/get-started/#stay-in-touch">
-    <img src="https://img.shields.io/badge/Subscribe-Updates-00B5AD?logo=mail.ru" alt="Subscribe for Updates">
-  </a>
-  <a href="https://forum.modular.com/c/">
-    <img src="https://img.shields.io/badge/Modular-Forum-9B59B6?logo=discourse" alt="Modular Forum">
-  </a>
-  <a href="https://discord.gg/modular">
-    <img src="https://img.shields.io/badge/Discord-Join_Chat-5865F2?logo=discord" alt="Discord">
-  </a>
+  <a href="#acknowledgments"><strong>Acknowledgments</strong></a>
 </p>
 
 ## Overview
@@ -41,178 +23,120 @@
 > _"For the things we have to learn before we can do them, we learn by doing
 > them."_ — Aristotle, (Nicomachean Ethics)
 
-Welcome to **Mojo🔥 GPU Puzzles, Edition 1** — an interactive approach to
-learning GPU programming through hands-on puzzle solving. Instead of traditional
-textbook learning, you'll immediately dive into writing real GPU code and seeing
-the results.
+Welcome to **CUDA GPU Puzzles** — an interactive approach to learning GPU
+programming through hands-on puzzle solving. Instead of traditional textbook
+learning, you'll immediately dive into writing real CUDA C++ kernels, compiling
+them with `nvcc`, and seeing the results come back from the hardware.
 
-Start Learning Now 👉 [puzzles.modular.com](https://puzzles.modular.com/)
+> 📌 **Port status.** This is a CUDA C++ port of Modular's
+> [Mojo GPU Puzzles](https://github.com/modular/mojo-gpu-puzzles). **Part I
+> (Puzzles 1–8) is fully converted** — problem stubs, solutions, and book
+> chapters. The remaining parts are being ported puzzle-by-puzzle; until then,
+> their chapters and source may still be the original Mojo. The GPU concepts are
+> identical — only the language changes.
 
-> 📬
-> [Subscribe to updates](https://docs.modular.com/max/get-started/#stay-in-touch)
-> to get notified when new puzzles are released!
+## Why CUDA
 
-## Why Mojo🔥
+CUDA is NVIDIA's parallel computing platform and the most direct, mature way to
+program NVIDIA GPUs. Learning it gives you the mental model that underlies every
+higher-level GPU tool (PyTorch, cuBLAS, cuDNN, CUTLASS, …):
 
-[Mojo](https://docs.modular.com/mojo/manual/) represents a revolutionary
-approach to GPU programming, making massive parallelism accessible while
-maintaining systems-level performance:
-
-- 🐍 **Python-like Syntax** with systems programming capabilities
-- ⚡ **Zero-cost Abstractions** that compile to efficient machine code
-- 🛡️ **Strong Type System** catching errors at compile time
-- 📊 **Built-in Tensor Support** with hardware-aware optimizations
-- 🔧 **Direct Hardware Access** to CPU and GPU intrinsics
-- 🔄 **Cross-Hardware Portability** for CPUs and GPUs
-- 🎯 **Ergonomic Improvements** over traditional C/C++
+- ⚡ **Direct hardware access** to threads, blocks, warps, shared memory, and
+  tensor cores
+- 🧰 **A mature toolchain**: `nvcc`, `compute-sanitizer`, `cuda-gdb`, and Nsight
+- 🧠 **Modern C++ on the device**: C++17/20 in kernels, plus the standard library
+  via [libcu++](https://nvidia.github.io/cccl/libcudacxx/) (`cuda::std::`)
+- 📚 **A huge ecosystem** built on the very primitives these puzzles teach
+- 🎯 **Transferable skills**: the thread/block/grid model is the foundation under
+  all GPU frameworks
 
 ## Getting Started
 
 ### Prerequisites
 
-You'll need a
-[compatible GPU](https://docs.modular.com/max/faq#gpu-requirements) to run the
-examples.
+- An **NVIDIA GPU** (compute capability `sm_70`+; the `Makefile` defaults to
+  `sm_86`)
+- The **CUDA Toolkit** (provides `nvcc`; CUDA 12.x or 13.x)
+- A compatible **C++ host compiler** and **`make`**
 
-1. Visit [puzzles.modular.com](https://puzzles.modular.com)
-2. Clone this repository
+Verify your setup:
 
-   ```bash
-   git clone https://github.com/modular/mojo-gpu-puzzles
-   cd mojo-gpu-puzzles
-   ```
+```bash
+nvcc --version
+nvidia-smi
+```
 
-3. Install a package manager to run the Mojo🔥 programs:
+### Run your first puzzle
 
-### Option 1: [pixi](https://pixi.sh/latest/#installation) (Highly recommended)
+```bash
+# Clone the repository
+git clone https://github.com/syedazeez337/mojo-gpu-puzzles
+cd mojo-gpu-puzzles
 
-   `pixi` is the **recommended option** for this project because:
+# Run puzzle 1 (it fails until you implement it — that's the point!)
+make p01
+```
 
-- Easy access to Modular's MAX/Mojo packages
-- Handles GPU dependencies
-- Full conda + PyPI ecosystem support
+Edit `problems/p01/p01.cu`, fill in the kernel, and run `make p01` again until
+you see `Puzzle 01 complete ✅`.
 
-   **Note: A few puzzles only work with `pixi`.**
+### Common commands
 
-   **Install:**
+```bash
+make p01             # build & run your implementation of a puzzle
+make test-p01        # build & run the reference solution for one puzzle
+make test            # build & run every reference solution
+make build-all       # compile everything without running
+make clean           # remove build artifacts
 
-   ```bash
-   curl -fsSL https://pixi.sh/install.sh | sh
-   ```
+# Override the target GPU or C++ standard
+make p01 ARCH=sm_90  # build for Hopper
+make test STD=c++17
+```
 
-   **Update:**
+If your GPU isn't Ampere, set `ARCH` to match your card (see the
+[CUDA GPUs list](https://developer.nvidia.com/cuda-gpus)).
 
-   ```bash
-   pixi self-update
-   ```
+## Project structure
 
-### Option 2: [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
-
-   **Install:**
-
-   ```bash
-   curl -fsSL https://astral.sh/uv/install.sh | sh
-   ```
-
-   **Update:**
-
-   ```bash
-   uv self update
-   ```
-
-   **Create a virtual environment:**
-
-   ```bash
-   uv venv && source .venv/bin/activate
-   ```
-
-4. Start solving puzzles!
+```
+problems/    # puzzle stubs with `// FILL ME IN` — this is where you work
+solutions/   # reference solutions
+include/     # shared headers: puzzles.cuh (CUDA_CHECK + helpers),
+             #                 tensor_view.cuh (the TensorView abstraction)
+book/        # the mdBook source for the written guide
+Makefile     # per-puzzle build & run targets
+```
 
 ## Development
 
-We use `pixi` for development as it includes `uv` and also supports conda
-packages (like `mdbook` from the `conda-forge` channel) needed for development
-workflows.
-
-> **WSL Users**: Before running `pixi run book`, install the required browser
-> integration package:
->
-> ```bash
-> sudo apt update && sudo apt install wslu
-> ```
+The written guide is built with [mdBook](https://rust-lang.github.io/mdBook/).
 
 ```bash
-# Build and serve the book
-pixi run book
+# Serve the book locally with live reload
+cd book && mdbook serve --open
 
-# Test solutions on GPU
-pixi run tests
-# Or a specific puzzle
-pixi run tests pXX
-# Or manually
-pixi run mojo/python solutions/pXX/pXX.{mojo,py}
+# Run the full CUDA test suite
+make test
 
-# Run GPU sanitizers for debugging on NVIDIA GPUs using `compute-sanitizer`
-pixi run memcheck  <optional pXX>    # Detect memory errors
-pixi run racecheck <optional pXX>    # Detect race conditions
-pixi run synccheck <optional pXX>    # Detect synchronization errors
-pixi run initcheck <optional pXX>    # Detect uninitialized memory access
-# Or run all sanitizer tools
-pixi run sanitizers pXX
-# Or manually
-# Note: ignore the mojo runtime error collision with the sanitizer. Look for `Error SUMMARY`
-pixi run compute-sanitizer --tool {memcheck,racecheck,synccheck,initcheck} mojo solutions/pXX/pXX.mojo
-
-# Format code
-pixi run format
+# Debug a kernel for memory/race errors
+compute-sanitizer ./build/sol_p03
 ```
 
 ## Contributing
 
-We welcome contributions! Whether it's:
-
-- 📝 Improving explanations
-- 🐛 Fixing bugs
-  ([report bug](https://github.com/modular/mojo-gpu-puzzles/issues/new?template=bug_report.yml))
-- 💡 Suggesting improvements
-  ([request feature](https://github.com/modular/mojo-gpu-puzzles/issues/new?template=feature_request.yml))
-
-Please feel free to:
-
-1. Fork the repository
-2. Create your feature branch
-3. Submit a pull request
-
-## Community
-
-<p align="center">
-  <a href="https://docs.modular.com/max/get-started/#stay-in-touch">
-    <img src="https://img.shields.io/badge/Subscribe-Updates-00B5AD?logo=mail.ru" alt="Subscribe for Updates">
-  </a>
-  <a href="https://forum.modular.com/c/">
-    <img src="https://img.shields.io/badge/Modular-Forum-9B59B6?logo=discourse" alt="Modular Forum">
-  </a>
-  <a href="https://discord.gg/modular">
-    <img src="https://img.shields.io/badge/Discord-Join_Chat-5865F2?logo=discord" alt="Discord">
-  </a>
-</p>
-
-Join our vibrant community to discuss GPU programming, share solutions, and get
-help!
+Contributions are welcome — improving explanations, fixing bugs, or porting more
+puzzles to CUDA. Feel free to fork, branch, and open a pull request.
 
 ## Acknowledgments
 
-- Thanks to all our
-  [contributors](https://github.com/modular/mojo-gpu-puzzles/graphs/contributors)
-- Initial puzzles are heavily inspired by
-  [GPU Puzzles](https://github.com/srush/GPU-Puzzles)
-- Built with [mdBook](https://rust-lang.github.io/mdBook/)
+- This project is a CUDA C++ port of Modular's
+  [Mojo GPU Puzzles](https://github.com/modular/mojo-gpu-puzzles).
+- The initial puzzles are heavily inspired by
+  [GPU Puzzles](https://github.com/srush/GPU-Puzzles) by Sasha Rush.
+- Built with [mdBook](https://rust-lang.github.io/mdBook/).
 
 ## License
 
-This project is licensed under the LLVM License - see the [LICENSE](LICENSE)
+This project is licensed under the LLVM License — see the [LICENSE](LICENSE)
 file for details.
-
-<p align="center">
-  <sub>Built with ❤️ by the Modular team</sub>
-</p>

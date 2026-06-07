@@ -5,7 +5,7 @@
 # ===----------------------------------------------------------------------=== #
 from manim import *
 
-# Constants matching p08.mojo
+# Constants matching p08.cu
 SIZE = 8
 TPB = 4
 
