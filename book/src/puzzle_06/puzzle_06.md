@@ -2,19 +2,22 @@
 
 ## Overview
 
-Implement a kernel that adds 10 to each position of vector `a` and stores it in
-`output`.
+Implement a CUDA kernel that adds 10 to each position of vector `a` and stores
+it in `output`.
 
 A **thread block** (or just **block**) is a group of threads that execute
-together on a single GPU multiprocessor. All threads in a block share the same
-shared memory and can synchronize with each other. When data is larger than one
-block can handle, the GPU schedules multiple blocks — each block independently
-processes its portion of the data. The global position of a thread is computed
-from both its position within the block (`thread_idx.x`) and which block it
-belongs to (`block_idx.x`):
-`global_i = block_dim.x * block_idx.x + thread_idx.x`.
+together on a single GPU streaming multiprocessor (SM). All threads in a block
+share the same shared memory and can synchronize with each other. When the data
+is larger than one block can handle, the GPU schedules multiple blocks — each
+block independently processes its portion of the data. The global position of a
+thread is computed from both its position within the block (`threadIdx.x`) and
+which block it belongs to (`blockIdx.x`):
 
-**Note:** _You have fewer threads per block than the size of a._
+```txt
+global_i = blockDim.x * blockIdx.x + threadIdx.x
+```
+
+**Note:** _You have fewer threads per block than the size of `a`._
 
 <img src="./media/06.png" alt="Blocks visualization" class="light-mode-img">
 <img src="./media/06d.png" alt="Blocks visualization" class="dark-mode-img">
@@ -23,33 +26,30 @@ belongs to (`block_idx.x`):
 
 This puzzle covers:
 
-- Processing data larger than thread block size
+- Processing data larger than a single thread block
 - Coordinating multiple blocks of threads
 - Computing global thread positions
 
 The key insight is understanding how blocks of threads work together to process
-data that's larger than a single block's capacity, while maintaining correct
+data that's larger than a single block's capacity, while maintaining a correct
 element-to-thread mapping.
 
 ## Code to complete
 
-```mojo
-{{#include ../../../problems/p06/p06.mojo:add_10_blocks}}
+```cpp
+{{#include ../../../problems/p06/p06.cu:add_10_blocks}}
 ```
 
-<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p06/p06.mojo" class="filename">View full file: problems/p06/p06.mojo</a>
-
-> Note: The `TileTensor` variant of this puzzle is very similar so we leave it
-> to the reader.
+<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p06/p06.cu" class="filename">View full file: problems/p06/p06.cu</a>
 
 <details>
 <summary><strong>Tips</strong></summary>
 
 <div class="solution-tips">
 
-1. Calculate global index: `i = block_dim.x * block_idx.x + thread_idx.x`
-2. Add guard: `if i < size`
-3. Inside guard: `output[i] = a[i] + 10.0`
+1. Calculate the global index: `i = blockDim.x * blockIdx.x + threadIdx.x`
+2. Add the guard: `if (i < size)`
+3. Inside the guard: `output[i] = a[i] + 10.0f`
 
 </div>
 </details>
@@ -58,48 +58,15 @@ element-to-thread mapping.
 
 To test your solution, run the following command in your terminal:
 
-<div class="code-tabs" data-tab-group="package-manager">
-  <div class="tab-buttons">
-    <button class="tab-button">pixi NVIDIA (default)</button>
-    <button class="tab-button">pixi AMD</button>
-    <button class="tab-button">pixi Apple</button>
-    <button class="tab-button">uv</button>
-  </div>
-  <div class="tab-content">
-
 ```bash
-pixi run p06
+make p06
 ```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e amd p06
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e apple p06
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-uv run poe p06
-```
-
-  </div>
-</div>
 
 Your output will look like this if the puzzle isn't solved yet:
 
 ```txt
-out: HostBuffer([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-expected: HostBuffer([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0])
+out: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+expected: [10, 11, 12, 13, 14, 15, 16, 17, 18]
 ```
 
 ## Solution
@@ -107,50 +74,51 @@ expected: HostBuffer([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0])
 <details class="solution-details">
 <summary></summary>
 
-```mojo
-{{#include ../../../solutions/p06/p06.mojo:add_10_blocks_solution}}
+```cpp
+{{#include ../../../solutions/p06/p06.cu:add_10_blocks_solution}}
 ```
 
 <div class="solution-explanation">
 
-This solution covers key concepts of block-based GPU processing:
+This solution covers the key concepts of block-based GPU processing:
 
 1. **Global thread indexing**
    - Combines block and thread indices:
-     `block_dim.x * block_idx.x + thread_idx.x`
+     `blockDim.x * blockIdx.x + threadIdx.x`
    - Maps each thread to a unique global position
-   - Example for 3 threads per block:
+   - Example for 4 threads per block:
 
      ```txt
-     Block 0: [0 1 2]
-     Block 1: [3 4 5]
-     Block 2: [6 7 8]
+     Block 0: [0 1 2 3]
+     Block 1: [4 5 6 7]
+     Block 2: [8 ...   ]
      ```
 
 2. **Block coordination**
    - Each block processes a contiguous chunk of data
-   - Block size (3) < Data size (9) requires multiple blocks
+   - Block size (4) < data size (9), so we need multiple blocks
    - Automatic work distribution across blocks:
 
      ```txt
      Data:    [0 1 2 3 4 5 6 7 8]
-     Block 0: [0 1 2]
-     Block 1:       [3 4 5]
-     Block 2:             [6 7 8]
+     Block 0: [0 1 2 3]
+     Block 1:         [4 5 6 7]
+     Block 2:                 [8]
      ```
 
 3. **Bounds checking**
-   - Guard condition `i < size` handles edge cases
-   - Prevents out-of-bounds access when size isn't perfectly divisible by block
-     size
-   - Essential for handling partial blocks at the end of data
+   - The guard `i < size` handles edge cases
+   - Prevents out-of-bounds access when `size` isn't a multiple of the block
+     size (here 3 blocks × 4 threads = 12 threads for 9 elements)
+   - Essential for handling the partial block at the end of the data
 
 4. **Memory access pattern**
-   - Coalesced memory access: threads in a block access contiguous memory
-   - Each thread processes one element: `output[i] = a[i] + 10.0`
-   - Block-level parallelism provides efficient memory bandwidth utilization
+   - Coalesced memory access: threads in a block read contiguous addresses,
+     which the hardware can service in a single wide memory transaction
+   - Each thread processes one element: `output[i] = a[i] + 10.0f`
 
 This pattern forms the foundation for processing large datasets that exceed the
 size of a single thread block.
+
 </div>
 </details>

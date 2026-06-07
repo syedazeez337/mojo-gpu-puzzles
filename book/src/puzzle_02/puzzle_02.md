@@ -1,15 +1,11 @@
 # Puzzle 2: Zip
 
-{{ youtube SlpgR685oGA breakpoint-lg }}
-
 ## Overview
 
-Implement a kernel that adds together each position of vector `a` and vector `b`
-and stores it in `output`.
+Implement a CUDA kernel that adds together each position of vector `a` and
+vector `b` and stores it in `output`.
 
 **Note:** _You have 1 thread per position._
-
-{{ youtube SlpgR685oGA breakpoint-sm }}
 
 <img src="./media/02.png" alt="Zip" class="light-mode-img">
 <img src="./media/02d.png" alt="Zip" class="dark-mode-img">
@@ -35,25 +31,25 @@ Thread 2:  a[2] + b[2] → output[2]
 ```
 
 💡 **Note**: Notice how we're now managing three arrays (`a`, `b`, `output`) in
-our kernel. As we progress to more complex operations, managing multiple array
-accesses will become increasingly challenging.
+our kernel. Each gets its own `cudaMalloc` / `cudaMemcpy` on the host side, but
+inside the kernel the indexing stays just as simple as Puzzle 1.
 
 ## Code to complete
 
-```mojo
-{{#include ../../../problems/p02/p02.mojo:add}}
+```cpp
+{{#include ../../../problems/p02/p02.cu:add}}
 ```
 
-<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p02/p02.mojo" class="filename">View full file: problems/p02/p02.mojo</a>
+<a href="{{#include ../_includes/repo_url.md}}/blob/main/problems/p02/p02.cu" class="filename">View full file: problems/p02/p02.cu</a>
 
 <details>
 <summary><strong>Tips</strong></summary>
 
 <div class="solution-tips">
 
-1. Store `thread_idx.x` in `i`
+1. Store `threadIdx.x` in `i`
 2. Add `a[i]` and `b[i]`
-3. Store result in `output[i]`
+3. Store the result in `output[i]`
 
 </div>
 </details>
@@ -62,48 +58,15 @@ accesses will become increasingly challenging.
 
 To test your solution, run the following command in your terminal:
 
-<div class="code-tabs" data-tab-group="package-manager">
-  <div class="tab-buttons">
-    <button class="tab-button">pixi NVIDIA (default)</button>
-    <button class="tab-button">pixi AMD</button>
-    <button class="tab-button">pixi Apple</button>
-    <button class="tab-button">uv</button>
-  </div>
-  <div class="tab-content">
-
 ```bash
-pixi run p02
+make p02
 ```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e amd p02
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-pixi run -e apple p02
-```
-
-  </div>
-  <div class="tab-content">
-
-```bash
-uv run poe p02
-```
-
-  </div>
-</div>
 
 Your output will look like this if the puzzle isn't solved yet:
 
 ```txt
-out: HostBuffer([0.0, 0.0, 0.0, 0.0])
-expected: HostBuffer([0.0, 2.0, 4.0, 6.0])
+out: [0, 0, 0, 0]
+expected: [0, 2, 4, 6]
 ```
 
 ## Solution
@@ -111,15 +74,15 @@ expected: HostBuffer([0.0, 2.0, 4.0, 6.0])
 <details class="solution-details">
 <summary></summary>
 
-```mojo
-{{#include ../../../solutions/p02/p02.mojo:add_solution}}
+```cpp
+{{#include ../../../solutions/p02/p02.cu:add_solution}}
 ```
 
 <div class="solution-explanation">
 
 This solution:
 
-- Gets thread index with `i = thread_idx.x`
+- Gets the thread index with `int i = threadIdx.x`
 - Adds values from both arrays: `output[i] = a[i] + b[i]`
 
 </div>
@@ -129,9 +92,9 @@ This solution:
 
 While this direct indexing works for simple element-wise operations, consider:
 
-- What if arrays have different layouts?
-- What if we need to broadcast one array to another?
-- How to ensure coalesced access across multiple arrays?
+- What if arrays have different shapes (different number of rows/columns)?
+- What if we need to broadcast one array against another?
+- How do we keep multi-dimensional index math readable?
 
-These questions will be addressed when we
-[introduce TileTensor in Puzzle 4](../puzzle_04/introduction_tile_tensor.md).
+These questions are addressed when we
+[introduce TensorView in Puzzle 4](../puzzle_04/introduction_tensor_view.md).

@@ -1,15 +1,11 @@
 # Puzzle 4: 2D Map
 
-{{ youtube EjmBmwgdAT0 breakpoint-lg }}
-
 ## Overview
 
-Implement a kernel that adds 10 to each position of 2D square matrix `a` and
-stores it in 2D square matrix `output`.
+Implement a CUDA kernel that adds 10 to each position of a 2D square matrix `a`
+and stores it in a 2D square matrix `output`.
 
 **Note:** _You have more threads than positions_.
-
-{{ youtube EjmBmwgdAT0 breakpoint-sm }}
 
 <img src="./media/04a.png" alt="2D Matrix Mapping" class="light-mode-img">
 <img src="./media/04ad.png" alt="2D Matrix Mapping" class="dark-mode-img">
@@ -17,7 +13,7 @@ stores it in 2D square matrix `output`.
 ## Key concepts
 
 - 2D thread indexing
-- Matrix operations on GPU
+- Matrix operations on the GPU
 - Handling excess threads
 - Memory layout patterns
 
@@ -29,8 +25,8 @@ For each position \\((i,j)\\):
 > When working with 2D matrices in GPU programming, we follow a natural mapping
 > between thread indices and matrix coordinates:
 >
-> - `thread_idx.y` corresponds to the row index
-> - `thread_idx.x` corresponds to the column index
+> - `threadIdx.y` corresponds to the row index
+> - `threadIdx.x` corresponds to the column index
 > <img src="./media/04b.png" alt="2D thread indexing" class="light-mode-img">
 > <img src="./media/04bd.png" alt="2D thread indexing" class="dark-mode-img">
 >
@@ -48,7 +44,7 @@ For each position \\((i,j)\\):
 > line, top to bottom, with each line read left to right. This row-major memory
 > layout proved efficient for both CPUs and GPUs, as it matches how they access
 > memory sequentially. When GPU programming adopted thread blocks for parallel
-> processing, it was natural to map `thread_idx.y` to rows and `thread_idx.x` to
+> processing, it was natural to map `threadIdx.y` to rows and `threadIdx.x` to
 > columns, maintaining consistency with established matrix indexing conventions.
 
 ## Implementation approaches
@@ -57,15 +53,15 @@ For each position \\((i,j)\\):
 
 Learn how 2D indexing works with manual memory management.
 
-### [📚 Learn about TileTensor](./introduction_tile_tensor.md)
+### [📚 Learn about TensorView](./introduction_tensor_view.md)
 
-Discover a powerful abstraction that simplifies multi-dimensional array
-operations and memory management on GPU.
+Discover a small abstraction that simplifies multi-dimensional array access on
+the GPU.
 
-### [🚀 Modern 2D operations](./tile_tensor.md)
+### [🚀 Modern 2D operations](./tensor_view.md)
 
-Put TileTensor into practice with natural 2D indexing and automatic bounds
-checking.
+Put `TensorView` into practice with natural 2D indexing.
 
-💡 **Note**: From this puzzle onward, we'll primarily use TileTensor for
-cleaner, safer GPU code.
+💡 **Note**: From this puzzle onward, we'll often use `TensorView` for cleaner,
+safer GPU code, while always keeping the raw version in view so you know exactly
+what the abstraction compiles to.

@@ -25,6 +25,11 @@ book/src/puzzle_*/media/*.gif
 *.mojoc
 *.mojopkg
 
+# CUDA / C++ build artifacts
+build/
+*.o
+*.obj
+
 # rules
 .cursor/
 .claude/
